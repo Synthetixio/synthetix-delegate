@@ -1,0 +1,69 @@
+body {
+	margin: 0;
+	font-family: 'apercu-regular';
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+@font-face {
+	font-family: 'apercu-bold';
+	src: url('../assets/fonts/apercu-bold.eot');
+	src: url('../assets/fonts/apercu-bold.eot?#iefix') format('embedded-opentype'),
+		url('../assets/fonts/apercu-bold.woff2') format('woff2'),
+		url('../assets/fonts/apercu-bold.woff') format('woff'),
+		url('../assets/fonts/apercu-bold.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'apercu-medium';
+	src: url('../assets/fonts/apercu-medium.eot');
+	src: url('../assets/fonts/apercu-medium.eot?#iefix') format('embedded-opentype'),
+		url('../assets/fonts/apercu-medium.woff2') format('woff2'),
+		url('../assets/fonts/apercu-medium.woff') format('woff'),
+		url('../assets/fonts/apercu-medium.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'apercu-regular';
+	src: url('../assets/fonts/apercu-regular.eot');
+	src: url('../assets/fonts/apercu-regular.eot?#iefix') format('embedded-opentype'),
+		url('../assets/fonts/apercu-regular.woff2') format('woff2'),
+		url('../assets/fonts/apercu-regular.woff') format('woff'),
+		url('../assets/fonts/apercu-regular.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'apercu-light';
+	src: url('../assets/fonts/apercu-light.eot');
+	src: url('../assets/fonts/apercu-light.eot?#iefix') format('embedded-opentype'),
+		url('../assets/fonts/apercu-light.woff2') format('woff2'),
+		url('../assets/fonts/apercu-light.woff') format('woff'),
+		url('../assets/fonts/apercu-light.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+input[type='number'] {
+	-moz-appearance: textfield;
+}
+
+ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+}

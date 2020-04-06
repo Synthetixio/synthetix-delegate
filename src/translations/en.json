@@ -1,0 +1,31 @@
+{
+	"list-wallets": {
+		"headline": "Choose wallet to interact with",
+		"connected-wallet-addr": "Connected wallet: {{walletAddress}}",
+		"no-results": "No wallets found. Please go to mintr with your main SNX wallet and delegate to a mobile or hot wallet you trust",
+		"custom-addr": {
+			"label": "Or enter the address below:",
+			"placeholder": "e.g. 0x3ba...",
+			"error-message": "Wallet not found"
+		},
+		"read-blog": "READ INSTRUCTIONS (BLOG)"
+	},
+	"manage-wallet": {
+		"headline": "Delegation enables a wallet to execute functions on behalf of another wallet: mint, burn, claim, and exchange.",
+		"current-c-ratio": "current c-ratio",
+		"target-c-ratio": "target c-ratio",
+		"buttons": {
+			"burn-to-target": "Burn to target",
+			"claim-fees": "Claim fees",
+			"mint-max": "Mint max"
+		}
+	},
+	"common": {
+		"actions": {
+			"submit": "submit"
+		},
+		"errors": {
+			"unknown-error-try-again": "An unknown error occurred after you submitted. Please try again"
+		}
+	}
+}
