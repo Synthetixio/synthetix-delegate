@@ -8,7 +8,7 @@ export const Input = styled.input`
 	height: 42px;
 	padding: 0 10px;
 	font-size: 14px;
-	color: ${props => props.theme.colors.fontTertiary};
+	color: ${props => props.theme.colors.fontPrimary};
 	::placeholder {
 		opacity: 0.5;
 		color: ${props => props.theme.colors.fontTertiary};
