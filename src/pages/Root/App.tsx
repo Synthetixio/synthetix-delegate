@@ -66,13 +66,14 @@ export const App: FC<AppProps> = ({
 		const { ethereum } = window;
 
 		// TODO: handle these better (reset redux state, etc)
-
-		const events = ['accountsChanged', 'networkChanged'];
-		events.forEach(event => {
-			ethereum.on(event, () => {
-				window.location.reload();
+		if (ethereum) {
+			const events = ['accountsChanged', 'networkChanged'];
+			events.forEach(event => {
+				ethereum.on(event, () => {
+					window.location.reload();
+				});
 			});
-		});
+		}
 
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isAppReady]);
