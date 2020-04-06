@@ -16,7 +16,7 @@ import ROUTES from 'constants/routes';
 import snxJSConnector from 'utils/snxJSConnector';
 
 import { toShortWalletAddr } from 'utils/formatters/wallet';
-import { formatEther } from 'ethers/utils';
+import { formatEther, BigNumberish } from 'ethers/utils';
 import { normalizeGasLimit, gweiGasPrice } from 'utils/transaction';
 import { RootState } from 'store/types';
 import { getGasPrice, GasPrice } from 'store/ducks/transaction/gasPrice';
@@ -56,12 +56,14 @@ const ManageWallet: FC<ManageWalletProps> = memo(({ match, gasPrice }) => {
 		const init = async () => {
 			setIsLoading(true);
 
-			const collateralisationRatio = await Synthetix.collateralisationRatio(walletAddr);
-			const issuanceRatio = await SynthetixState.issuanceRatio();
-			const maxIssueSynths = await Synthetix.maxIssuableSynths(walletAddr);
-			const isFeesClaimable = await FeePool.isFeesClaimable(walletAddr);
-			const sUSDBalance = await sUSD.balanceOf(walletAddr);
-
+			const collateralisationRatio: BigNumberish = await Synthetix.collateralisationRatio(
+				walletAddr
+			);
+			const issuanceRatio: BigNumberish = await SynthetixState.issuanceRatio();
+			const maxIssueSynths: BigNumberish = await Synthetix.maxIssuableSynths(walletAddr);
+			const isFeesClaimable: boolean = await FeePool.isFeesClaimable(walletAddr);
+			const sUSDBalance: number = await sUSD.balanceOf(walletAddr);
+			console.log(formatEther(collateralisationRatio));
 			setCollatRatio(
 				collateralisationRatio > 0
 					? Math.round(
