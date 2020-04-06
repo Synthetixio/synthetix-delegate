@@ -63,7 +63,6 @@ const ManageWallet: FC<ManageWalletProps> = memo(({ match, gasPrice }) => {
 			const maxIssueSynths: BigNumberish = await Synthetix.maxIssuableSynths(walletAddr);
 			const isFeesClaimable: boolean = await FeePool.isFeesClaimable(walletAddr);
 			const sUSDBalance: number = await sUSD.balanceOf(walletAddr);
-			console.log(formatEther(collateralisationRatio));
 			setCollatRatio(
 				collateralisationRatio > 0
 					? Math.round(
