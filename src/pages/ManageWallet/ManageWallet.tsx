@@ -16,186 +16,174 @@ import ROUTES from 'constants/routes';
 import snxJSConnector from 'utils/snxJSConnector';
 
 import { toShortWalletAddr } from 'utils/formatters/wallet';
-import { formatEther, BigNumberish } from 'ethers/utils';
 import { normalizeGasLimit, gweiGasPrice } from 'utils/transaction';
 import { RootState } from 'store/types';
 import { getGasPrice, GasPrice } from 'store/ducks/transaction/gasPrice';
 import { WalletAddress } from 'constants/wallet';
-import { toBigNumber } from 'utils/math';
 import { EMPTY_VALUE } from 'constants/placeholder';
+import {
+	getDelegateWalletInfoState,
+	DelegateWalletInfo,
+	fetchDelegateWalletInfoRequest,
+} from 'store/ducks/delegates/delegateWalletInfo';
+import useInterval from 'hooks/useInterval';
+import { REQUEST_REFRESH_INTERVAL_MS } from 'constants/request';
 
 interface StateProps {
 	gasPrice: GasPrice;
+	walletInfo: DelegateWalletInfo;
+	isLoading: boolean;
+	walletAddr: WalletAddress;
+}
+
+interface DispatchProps {
+	fetchDelegateWalletInfoRequest: typeof fetchDelegateWalletInfoRequest;
 }
 
 interface Props {
 	match: match<{ walletAddr: WalletAddress }>;
 }
 
-type ManageWalletProps = StateProps & Props;
+type ManageWalletProps = StateProps & DispatchProps & Props;
 
-const ManageWallet: FC<ManageWalletProps> = memo(({ match, gasPrice }) => {
-	const { t } = useTranslation();
-	const [collatRatio, setCollatRatio] = useState<number | null>(null);
-	const [targetRatio, setTargetRatio] = useState<number | null>(null);
-	const [maxIssuableSynths, setMaxIssuableSynths] = useState<number | null>(null);
-	const [isFeesClaimable, setIsFeesClaimable] = useState<boolean | null>(null);
-	const [sUSDBalance, setsUSDBalance] = useState<number | null>(null);
-	const [isLoading, setIsLoading] = useState<boolean>(false);
-	const [txErrorMessage, setTxErrorMessage] = useState<string | null>(null);
+const ManageWallet: FC<ManageWalletProps> = memo(
+	({ match, gasPrice, walletInfo, walletAddr, isLoading, fetchDelegateWalletInfoRequest }) => {
+		const { t } = useTranslation();
+		const [txErrorMessage, setTxErrorMessage] = useState<string | null>(null);
+		const {
+			collatRatio,
+			targetRatio,
+			isFeesClaimable,
+			maxIssuableSynths,
+			sUSDBalance,
+		} = walletInfo;
 
-	const {
-		snxJS: { Synthetix, SynthetixState, FeePool, sUSD },
-	} = snxJSConnector;
+		const {
+			snxJS: { FeePool, Synthetix },
+		} = snxJSConnector;
 
-	const {
-		params: { walletAddr },
-	} = match;
+		useEffect(() => {
+			const init = async () => {
+				fetchDelegateWalletInfoRequest({
+					walletAddresses: [walletAddr],
+				});
+			};
+			init();
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, []);
 
-	useEffect(() => {
-		const init = async () => {
-			setIsLoading(true);
+		useInterval(() => {
+			fetchDelegateWalletInfoRequest({ walletAddresses: [walletAddr] });
+		}, REQUEST_REFRESH_INTERVAL_MS);
 
-			const collateralisationRatio: BigNumberish = await Synthetix.collateralisationRatio(
-				walletAddr
-			);
-			const issuanceRatio: BigNumberish = await SynthetixState.issuanceRatio();
-			const maxIssueSynths: BigNumberish = await Synthetix.maxIssuableSynths(walletAddr);
-			const isFeesClaimable: boolean = await FeePool.isFeesClaimable(walletAddr);
-			const sUSDBalance: number = await sUSD.balanceOf(walletAddr);
-			setCollatRatio(
-				collateralisationRatio > 0
-					? Math.round(
-							toBigNumber(100)
-								.dividedBy(formatEther(collateralisationRatio))
-								.toNumber()
-					  )
-					: 0
-			);
-			setTargetRatio(
-				issuanceRatio > 0
-					? Math.round(
-							toBigNumber(100)
-								.dividedBy(formatEther(issuanceRatio))
-								.toNumber()
-					  )
-					: 0
-			);
-			setMaxIssuableSynths(Number(formatEther(maxIssueSynths)));
-			setIsFeesClaimable(isFeesClaimable);
-			setsUSDBalance(sUSDBalance);
+		const handleBurnToTarget = async () => {
+			try {
+				setTxErrorMessage(null);
 
-			setIsLoading(false);
+				const gasEstimate = await Synthetix.contract.estimate.burnSynthsToTargetOnBehalf(
+					walletAddr
+				);
+
+				await Synthetix.burnSynthsToTargetOnBehalf(walletAddr, {
+					gasPrice: gweiGasPrice(gasPrice.fast),
+					gasLimit: normalizeGasLimit(gasEstimate),
+				});
+			} catch (e) {
+				setTxErrorMessage(t('common.errors.unknown-error-try-again'));
+			}
 		};
-		init();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
 
-	const handleBurnToTarget = async () => {
-		try {
-			setTxErrorMessage(null);
+		const handleClaimFees = async () => {
+			try {
+				setTxErrorMessage(null);
 
-			const gasEstimate = await Synthetix.contract.estimate.burnSynthsToTargetOnBehalf(walletAddr);
+				const gasEstimate = await FeePool.contract.estimate.claimOnBehalf(walletAddr);
 
-			await Synthetix.burnSynthsToTargetOnBehalf(walletAddr, {
-				gasPrice: gweiGasPrice(gasPrice.fast),
-				gasLimit: normalizeGasLimit(gasEstimate),
-			});
-		} catch (e) {
-			setTxErrorMessage(t('common.errors.unknown-error-try-again'));
-		}
-	};
+				await FeePool.claimOnBehalf(walletAddr, {
+					gasPrice: gweiGasPrice(gasPrice.fast),
+					gasLimit: normalizeGasLimit(gasEstimate),
+				});
+			} catch (e) {
+				setTxErrorMessage(t('common.errors.unknown-error-try-again'));
+			}
+		};
 
-	const handleClaimFees = async () => {
-		try {
-			setTxErrorMessage(null);
+		const handleMintMax = async () => {
+			try {
+				setTxErrorMessage(null);
 
-			const gasEstimate = await FeePool.contract.estimate.claimOnBehalf(walletAddr);
+				const gasEstimate = await Synthetix.contract.estimate.issueMaxSynthsOnBehalf(walletAddr);
 
-			await FeePool.claimOnBehalf(walletAddr, {
-				gasPrice: gweiGasPrice(gasPrice.fast),
-				gasLimit: normalizeGasLimit(gasEstimate),
-			});
-		} catch (e) {
-			setTxErrorMessage(t('common.errors.unknown-error-try-again'));
-		}
-	};
+				await Synthetix.issueMaxSynthsOnBehalf(walletAddr, {
+					gasPrice: gweiGasPrice(gasPrice.fast),
+					gasLimit: normalizeGasLimit(gasEstimate),
+				});
+			} catch (e) {
+				setTxErrorMessage(t('common.errors.unknown-error-try-again'));
+			}
+		};
 
-	const handleMintMax = async () => {
-		try {
-			setTxErrorMessage(null);
+		const isBurnToTargetButtonDisabled =
+			isLoading || (collatRatio != null && targetRatio != null && collatRatio > targetRatio);
 
-			const gasEstimate = await Synthetix.contract.estimate.issueMaxSynthsOnBehalf(walletAddr);
-
-			await Synthetix.issueMaxSynthsOnBehalf(walletAddr, {
-				gasPrice: gweiGasPrice(gasPrice.fast),
-				gasLimit: normalizeGasLimit(gasEstimate),
-			});
-		} catch (e) {
-			setTxErrorMessage(t('common.errors.unknown-error-try-again'));
-		}
-	};
-
-	const isBurnToTargetButtonDisabled =
-		isLoading || (collatRatio != null && targetRatio != null && collatRatio > targetRatio);
-
-	return (
-		<>
-			<StyledLink to={ROUTES.ListWallets}>
-				<BackButton />
-			</StyledLink>
-			<StyledLogo />
-			<Headline>{t('manage-wallet.headline')}</Headline>
-			<Wallet>{toShortWalletAddr(walletAddr)}</Wallet>
-			<CollatBox>
-				<CollatBoxLabel>{t('manage-wallet.current-c-ratio')}</CollatBoxLabel>
-				<CollatBoxValue>{collatRatio != null ? `${collatRatio}%` : EMPTY_VALUE}</CollatBoxValue>
-			</CollatBox>
-			<CollatBox>
-				<CollatBoxLabel>{t('manage-wallet.target-c-ratio')}</CollatBoxLabel>
-				<CollatBoxValue>{targetRatio != null ? `${targetRatio}%` : EMPTY_VALUE}</CollatBoxValue>
-			</CollatBox>
-			<Buttons>
-				{sUSDBalance && (
+		return (
+			<>
+				<StyledLink to={ROUTES.ListWallets}>
+					<BackButton />
+				</StyledLink>
+				<StyledLogo />
+				<Headline>{t('manage-wallet.headline')}</Headline>
+				<Wallet>{toShortWalletAddr(walletAddr)}</Wallet>
+				<CollatBox>
+					<CollatBoxLabel>{t('manage-wallet.current-c-ratio')}</CollatBoxLabel>
+					<CollatBoxValue>{collatRatio != null ? `${collatRatio}%` : EMPTY_VALUE}</CollatBoxValue>
+				</CollatBox>
+				<CollatBox>
+					<CollatBoxLabel>{t('manage-wallet.target-c-ratio')}</CollatBoxLabel>
+					<CollatBoxValue>{targetRatio != null ? `${targetRatio}%` : EMPTY_VALUE}</CollatBoxValue>
+				</CollatBox>
+				<Buttons>
+					{sUSDBalance != null && (
+						<Button
+							size="lg"
+							palette="primary"
+							disabled={isBurnToTargetButtonDisabled}
+							onClick={handleBurnToTarget}
+						>
+							{t('manage-wallet.buttons.burn-to-target')}
+						</Button>
+					)}
 					<Button
 						size="lg"
 						palette="primary"
-						disabled={isBurnToTargetButtonDisabled}
-						onClick={handleBurnToTarget}
+						disabled={isFeesClaimable === false || isLoading}
+						onClick={handleClaimFees}
 					>
-						{t('manage-wallet.buttons.burn-to-target')}
+						{t('manage-wallet.buttons.claim-fees')}
 					</Button>
+					<Button
+						size="lg"
+						palette="primary"
+						disabled={maxIssuableSynths === 0 || isLoading}
+						onClick={handleMintMax}
+					>
+						{t('manage-wallet.buttons.mint-max')}
+					</Button>
+				</Buttons>
+				{txErrorMessage && (
+					<TxErrorMessage
+						onDismiss={() => setTxErrorMessage(null)}
+						type="error"
+						size="sm"
+						floating={true}
+					>
+						{txErrorMessage}
+					</TxErrorMessage>
 				)}
-				<Button
-					size="lg"
-					palette="primary"
-					disabled={isFeesClaimable === false || isLoading}
-					onClick={handleClaimFees}
-				>
-					{t('manage-wallet.buttons.claim-fees')}
-				</Button>
-				<Button
-					size="lg"
-					palette="primary"
-					disabled={maxIssuableSynths === 0 || isLoading}
-					onClick={handleMintMax}
-				>
-					{t('manage-wallet.buttons.mint-max')}
-				</Button>
-			</Buttons>
-			{txErrorMessage && (
-				<TxErrorMessage
-					onDismiss={() => setTxErrorMessage(null)}
-					type="error"
-					size="sm"
-					floating={true}
-				>
-					{txErrorMessage}
-				</TxErrorMessage>
-			)}
-		</>
-	);
-});
+			</>
+		);
+	}
+);
 
 const StyledLink = styled(Link)`
 	&& {
@@ -276,8 +264,31 @@ const Buttons = styled.div`
 	grid-gap: 24px;
 `;
 
-const mapStateToProps = (state: RootState): StateProps => ({
-	gasPrice: getGasPrice(state),
-});
+const mapStateToProps = (state: RootState, { match }: Props): StateProps => {
+	const {
+		params: { walletAddr },
+	} = match;
 
-export default connect(mapStateToProps, null)(ManageWallet);
+	const walletInfoState = getDelegateWalletInfoState(state);
+
+	return {
+		gasPrice: getGasPrice(state),
+		walletInfo: walletInfoState.data[walletAddr]
+			? walletInfoState.data[walletAddr]
+			: {
+					collatRatio: null,
+					targetRatio: null,
+					isFeesClaimable: false,
+					maxIssuableSynths: null,
+					sUSDBalance: null,
+			  },
+		isLoading: walletInfoState.isLoading,
+		walletAddr,
+	};
+};
+
+const mapDispatchToProps: DispatchProps = {
+	fetchDelegateWalletInfoRequest,
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(ManageWallet);

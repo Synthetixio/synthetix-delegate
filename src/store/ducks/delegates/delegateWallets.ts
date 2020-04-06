@@ -7,27 +7,28 @@ import snxJS from 'utils/snxJSConnector';
 
 import { WalletAddress } from 'constants/wallet';
 
-import { getCurrentWalletAddress } from './wallet';
-import { createRequestSliceFactory, RequestSliceFactoryState } from './utils/requestSliceFactory';
+import { getCurrentWalletAddress } from '../wallet';
+import { createRequestSliceFactory, RequestSliceFactoryState } from '../utils/requestSliceFactory';
 
-const delegatesSliceName = 'delegates';
+const delegateWalletsSliceName = 'delegateWallets';
 
 export type DelegatesSliceState = RequestSliceFactoryState<WalletAddress[]>;
 
-const delegatesSlice = createRequestSliceFactory<WalletAddress[]>({
-	name: delegatesSliceName,
+const delegateWalletsSlice = createRequestSliceFactory<WalletAddress[]>({
+	name: delegateWalletsSliceName,
 	initialState: {
 		data: [],
 	},
 });
 
-export const getDelegatesState = (state: RootState) => state[delegatesSliceName];
+export const getDelegateWalletsState = (state: RootState) =>
+	state.delegates[delegateWalletsSliceName];
 
 export const {
 	fetchRequest: fetchDelegateWalletsRequest,
 	fetchSuccess: fetchDelegateWalletsSuccess,
 	fetchFailure: fetchDelegateWalletsFailure,
-} = delegatesSlice.actions;
+} = delegateWalletsSlice.actions;
 
 interface DelegateApprovalEventLog {
 	values: {
@@ -66,7 +67,11 @@ function* fetchDelegateWallets() {
 				)
 				.map(({ values: { authoriser } }) => authoriser);
 
-			yield put(fetchDelegateWalletsSuccess({ data: uniq(delegateWallets) }));
+			yield put(
+				fetchDelegateWalletsSuccess({
+					data: uniq(delegateWallets),
+				})
+			);
 		} catch (e) {
 			yield put(fetchDelegateWalletsFailure({ error: e.message }));
 		}
@@ -77,4 +82,4 @@ export function* watchFetchDelegateWalletsRequest() {
 	yield takeLatest(fetchDelegateWalletsRequest.type, fetchDelegateWallets);
 }
 
-export default delegatesSlice.reducer;
+export default delegateWalletsSlice.reducer;

@@ -10,8 +10,12 @@ import { WalletAddress } from 'constants/wallet';
 import { buildManageWalletLink } from 'constants/routes';
 
 import { RootState } from 'store/types';
-import { getDelegatesState } from 'store/ducks/delegates';
-import { DelegatesSliceState, fetchDelegateWalletsRequest } from 'store/ducks/delegates';
+import { getDelegateWalletsState } from 'store/ducks/delegates/delegateWallets';
+import { fetchDelegateWalletInfoRequest } from 'store/ducks/delegates/delegateWalletInfo';
+import {
+	DelegatesSliceState,
+	fetchDelegateWalletsRequest,
+} from 'store/ducks/delegates/delegateWallets';
 
 import history from 'utils/history';
 import { toShortWalletAddr } from 'utils/formatters/wallet';
@@ -27,6 +31,7 @@ import { Message } from 'styles/common';
 
 interface DispatchProps {
 	fetchDelegateWalletsRequest: typeof fetchDelegateWalletsRequest;
+	fetchDelegateWalletInfoRequest: typeof fetchDelegateWalletInfoRequest;
 }
 
 interface StateProps {
@@ -36,7 +41,7 @@ interface StateProps {
 type ListWalletsProps = DispatchProps & StateProps;
 
 export const ListWallets: FC<ListWalletsProps> = memo(
-	({ fetchDelegateWalletsRequest, delegatesRequestState }) => {
+	({ fetchDelegateWalletsRequest, fetchDelegateWalletInfoRequest, delegatesRequestState }) => {
 		const [walletAddr, setWalletAddr] = useState<WalletAddress>('');
 		const [walletAddrErr, setWalletAddrErr] = useState<boolean>(false);
 		const { t } = useTranslation();
@@ -51,6 +56,11 @@ export const ListWallets: FC<ListWalletsProps> = memo(
 		useInterval(() => {
 			fetchDelegateWalletsRequest();
 		}, REQUEST_REFRESH_INTERVAL_MS);
+
+		// preload wallets
+		useEffect(() => {
+			fetchDelegateWalletInfoRequest({ walletAddresses: delegateWallets });
+		}, [delegateWallets, fetchDelegateWalletInfoRequest]);
 
 		const handleWalletAddrOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 			setWalletAddr(e.target.value);
@@ -94,7 +104,11 @@ export const ListWallets: FC<ListWalletsProps> = memo(
 											</ErrorMessage>
 										)}
 									</ManualWalletAddrInput>
-									<Button palette="primary" onClick={handleManualWalletAddr}>
+									<Button
+										palette="primary"
+										onClick={handleManualWalletAddr}
+										disabled={walletAddr.length === 0}
+									>
 										{t('common.actions.submit')}
 									</Button>
 								</ManualWalletAddr>
@@ -165,11 +179,12 @@ const ErrorMessage = styled(Message)`
 `;
 
 const mapStateToProps = (state: RootState): StateProps => ({
-	delegatesRequestState: getDelegatesState(state),
+	delegatesRequestState: getDelegateWalletsState(state),
 });
 
 const mapDispatchToProps: DispatchProps = {
 	fetchDelegateWalletsRequest,
+	fetchDelegateWalletInfoRequest,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ListWallets);
