@@ -20,6 +20,9 @@
 			"mint-max": "Mint max"
 		}
 	},
+	"no-wallet-detected": {
+		"headline": "No wallet detected."
+	},
 	"common": {
 		"actions": {
 			"submit": "submit"

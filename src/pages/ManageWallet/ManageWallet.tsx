@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { match } from 'react-router-dom';
 
-import { ReactComponent as MintrLogo } from 'assets/images/mintr-logo.svg';
 import { ReactComponent as BackButton } from 'assets/images/back-button.svg';
 
 import Link from 'components/Link';
@@ -28,6 +27,7 @@ import {
 } from 'store/ducks/delegates/delegateWalletInfo';
 import useInterval from 'hooks/useInterval';
 import { REQUEST_REFRESH_INTERVAL_MS } from 'constants/request';
+import { PageLogo, PageHeadline } from 'styles/common';
 
 interface StateProps {
 	gasPrice: GasPrice;
@@ -131,8 +131,8 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 				<StyledLink to={ROUTES.ListWallets}>
 					<BackButton />
 				</StyledLink>
-				<StyledLogo />
-				<Headline>{t('manage-wallet.headline')}</Headline>
+				<PageLogo size="sm" />
+				<PageHeadline size="sm">{t('manage-wallet.headline')}</PageHeadline>
 				<Wallet>{toShortWalletAddr(walletAddr)}</Wallet>
 				<CollatBox>
 					<CollatBoxLabel>{t('manage-wallet.current-c-ratio')}</CollatBoxLabel>
@@ -228,19 +228,6 @@ const CollatBoxValue = styled.span`
 	letter-spacing: 0.2px;
 	font-family: ${props => props.theme.fonts.regular};
 	color: ${props => props.theme.colors.fontPrimary};
-`;
-
-const StyledLogo = styled(MintrLogo)`
-	width: 174px;
-	height: 48px;
-`;
-
-const Headline = styled.div`
-	font-family: ${props => props.theme.fonts.regular};
-	color: ${props => props.theme.colors.fontPrimary};
-	font-size: 16px;
-	padding-bottom: 50px;
-	padding-top: 11px;
 `;
 
 const Wallet = styled.div`

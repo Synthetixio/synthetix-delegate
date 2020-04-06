@@ -19,6 +19,7 @@ import Spinner from 'components/Spinner';
 import 'translations/i18n';
 import useInterval from 'hooks/useInterval';
 import { REQUEST_REFRESH_INTERVAL_MS } from 'constants/request';
+import NoWalletDetected from './NoWalletDetected';
 
 declare const window: any;
 
@@ -35,11 +36,10 @@ export const App: FC<AppProps> = ({
 	setCurrentWalletAddress,
 	fetchGasPriceRequest,
 }) => {
+	const { ethereum } = window;
 	const [isAppReady, setAppReady] = useState<boolean>(false);
 
 	useEffect(() => {
-		const { ethereum } = window;
-
 		const init = async () => {
 			if (ethereum) {
 				const web3 = new providers.Web3Provider(ethereum);
@@ -92,8 +92,10 @@ export const App: FC<AppProps> = ({
 							<Route path={ROUTES.ListWallets} component={ListWallets} />
 						</Switch>
 					</>
-				) : (
+				) : ethereum ? (
 					<Spinner fullscreen={true} />
+				) : (
+					<NoWalletDetected />
 				)}
 			</Router>
 		</Container>

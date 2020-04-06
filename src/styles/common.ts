@@ -2,6 +2,8 @@ import styled, { css } from 'styled-components';
 import { NavLink } from 'react-router-dom';
 import { Z_INDEX } from 'constants/ui';
 
+import { ReactComponent as MintrLogo } from 'assets/images/mintr-logo.svg';
+
 export const FlexDiv = styled.div`
 	display: flex;
 `;
@@ -89,4 +91,31 @@ export const Message = styled(FlexDivCentered)<MessageProps>`
 			default:
 		}
 	}}
+`;
+
+export const PageLogo = styled(MintrLogo)<{ size?: 'lg' | 'sm' }>`
+	width: 291px;
+	height: 80px;
+	${props =>
+		props.size === 'sm' &&
+		css`
+			width: 174px;
+			height: 48px;
+		`}
+`;
+
+export const PageHeadline = styled.div<{ size?: 'lg' | 'sm' }>`
+	font-family: ${props => props.theme.fonts.regular};
+	color: ${props => props.theme.colors.fontPrimary};
+	font-size: 20px;
+	padding-bottom: 50px;
+	padding-top: 16px;
+
+	${props =>
+		props.size === 'sm' &&
+		css`
+			font-size: 16px;
+			padding-bottom: 50px;
+			padding-top: 11px;
+		`}
 `;

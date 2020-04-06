@@ -3,8 +3,6 @@ import { connect } from 'react-redux';
 import styled from 'styled-components';
 import { useTranslation } from 'react-i18next';
 
-import { ReactComponent as MintrLogo } from 'assets/images/mintr-logo.svg';
-
 import { REQUEST_REFRESH_INTERVAL_MS } from 'constants/request';
 import { WalletAddress } from 'constants/wallet';
 import { buildManageWalletLink } from 'constants/routes';
@@ -27,7 +25,8 @@ import LINKS from 'constants/links';
 import Button from 'components/Button';
 import TextInput from 'components/Input/TextInput';
 import Spinner from 'components/Spinner';
-import { Message } from 'styles/common';
+
+import { Message, PageHeadline, PageLogo } from 'styles/common';
 
 interface DispatchProps {
 	fetchDelegateWalletsRequest: typeof fetchDelegateWalletsRequest;
@@ -78,8 +77,8 @@ export const ListWallets: FC<ListWalletsProps> = memo(
 
 		return (
 			<>
-				<StyledLogo />
-				<Headline>{t('list-wallets.headline')}</Headline>
+				<PageLogo />
+				<PageHeadline>{t('list-wallets.headline')}</PageHeadline>
 				<Wallets>
 					{delegatesRequestState.isLoaded ? (
 						delegateWallets.length === 0 ? (
@@ -125,19 +124,6 @@ export const ListWallets: FC<ListWalletsProps> = memo(
 		);
 	}
 );
-
-const StyledLogo = styled(MintrLogo)`
-	width: 291px;
-	height: 80px;
-`;
-
-const Headline = styled.div`
-	font-family: ${props => props.theme.fonts.regular};
-	color: ${props => props.theme.colors.fontPrimary};
-	font-size: 20px;
-	padding-bottom: 50px;
-	padding-top: 16px;
-`;
 
 const Wallets = styled.div`
 	flex-grow: 1;
