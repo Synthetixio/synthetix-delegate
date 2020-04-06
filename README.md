@@ -1,6 +1,6 @@
 # Synthetix.Delegate
 
-The code for the [Synthetix.Exchange](https://delegate.synthetix.io) dApp.
+The code for the [Synthetix.Delegate](https://delegate.synthetix.io) dApp.
 
 ## Available Scripts
 
@@ -18,8 +18,3 @@ Runs the tests.
 ### `npm run build`
 
 Builds the app for production to the `build` folder.
-
-### `npm run storybook`
-
-Runs storybook.<br />
-Open [http://localhost:6006](http://localhost:6006) to view it in the browser.
