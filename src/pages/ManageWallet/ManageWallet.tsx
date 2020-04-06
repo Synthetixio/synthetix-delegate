@@ -36,8 +36,8 @@ type ManageWalletProps = StateProps & Props;
 
 const ManageWallet: FC<ManageWalletProps> = memo(({ match, gasPrice }) => {
 	const { t } = useTranslation();
-	const [collateralisationRatio, setCollateralisationRatio] = useState<number | null>(null);
-	const [issuanceRatio, setIssuanceRatio] = useState<number | null>(null);
+	const [collatRatio, setCollatRatio] = useState<number | null>(null);
+	const [targetRatio, setTargetRatio] = useState<number | null>(null);
 	const [maxIssuableSynths, setMaxIssuableSynths] = useState<number | null>(null);
 	const [isFeesClaimable, setIsFeesClaimable] = useState<boolean | null>(null);
 	const [sUSDBalance, setsUSDBalance] = useState<number | null>(null);
@@ -62,8 +62,24 @@ const ManageWallet: FC<ManageWalletProps> = memo(({ match, gasPrice }) => {
 			const isFeesClaimable = await FeePool.isFeesClaimable(walletAddr);
 			const sUSDBalance = await sUSD.balanceOf(walletAddr);
 
-			setCollateralisationRatio(Number(formatEther(collateralisationRatio)));
-			setIssuanceRatio(Number(formatEther(issuanceRatio)));
+			setCollatRatio(
+				collateralisationRatio > 0
+					? Math.round(
+							toBigNumber(100)
+								.dividedBy(formatEther(collateralisationRatio))
+								.toNumber()
+					  )
+					: 0
+			);
+			setTargetRatio(
+				issuanceRatio > 0
+					? Math.round(
+							toBigNumber(100)
+								.dividedBy(formatEther(issuanceRatio))
+								.toNumber()
+					  )
+					: 0
+			);
 			setMaxIssuableSynths(Number(formatEther(maxIssueSynths)));
 			setIsFeesClaimable(isFeesClaimable);
 			setsUSDBalance(sUSDBalance);
@@ -119,6 +135,9 @@ const ManageWallet: FC<ManageWalletProps> = memo(({ match, gasPrice }) => {
 		}
 	};
 
+	const isBurnToTargetButtonDisabled =
+		isLoading || (collatRatio != null && targetRatio != null && collatRatio > targetRatio);
+
 	return (
 		<>
 			<StyledLink to={ROUTES.ListWallets}>
@@ -129,35 +148,20 @@ const ManageWallet: FC<ManageWalletProps> = memo(({ match, gasPrice }) => {
 			<Wallet>{toShortWalletAddr(walletAddr)}</Wallet>
 			<CollatBox>
 				<CollatBoxLabel>{t('manage-wallet.current-c-ratio')}</CollatBoxLabel>
-				<CollatBoxValue>
-					{collateralisationRatio != null
-						? `${
-								collateralisationRatio > 0
-									? Math.round(
-											toBigNumber(100)
-												.dividedBy(collateralisationRatio)
-												.toNumber()
-									  )
-									: 0
-						  }%`
-						: EMPTY_VALUE}
-				</CollatBoxValue>
+				<CollatBoxValue>{collatRatio != null ? `${collatRatio}%` : EMPTY_VALUE}</CollatBoxValue>
 			</CollatBox>
 			<CollatBox>
 				<CollatBoxLabel>{t('manage-wallet.target-c-ratio')}</CollatBoxLabel>
-				<CollatBoxValue>
-					{issuanceRatio != null
-						? `${Math.round(
-								toBigNumber(100)
-									.dividedBy(issuanceRatio)
-									.toNumber()
-						  )}%`
-						: EMPTY_VALUE}
-				</CollatBoxValue>
+				<CollatBoxValue>{targetRatio != null ? `${targetRatio}%` : EMPTY_VALUE}</CollatBoxValue>
 			</CollatBox>
 			<Buttons>
 				{sUSDBalance && (
-					<Button size="lg" palette="primary" disabled={isLoading} onClick={handleBurnToTarget}>
+					<Button
+						size="lg"
+						palette="primary"
+						disabled={isBurnToTargetButtonDisabled}
+						onClick={handleBurnToTarget}
+					>
 						{t('manage-wallet.buttons.burn-to-target')}
 					</Button>
 				)}
