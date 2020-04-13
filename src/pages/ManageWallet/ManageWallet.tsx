@@ -54,6 +54,7 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 			collatRatio,
 			targetRatio,
 			isFeesClaimable,
+			hasFeesToClaim,
 			maxIssuableSynths,
 			sUSDBalance,
 		} = walletInfo;
@@ -156,7 +157,7 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 					<Button
 						size="lg"
 						palette="primary"
-						disabled={isFeesClaimable === false || isLoading}
+						disabled={isFeesClaimable === false || hasFeesToClaim === false || isLoading}
 						onClick={handleClaimFees}
 					>
 						{t('manage-wallet.buttons.claim-fees')}
@@ -266,6 +267,7 @@ const mapStateToProps = (state: RootState, { match }: Props): StateProps => {
 					collatRatio: null,
 					targetRatio: null,
 					isFeesClaimable: false,
+					hasFeesToClaim: false,
 					maxIssuableSynths: null,
 					sUSDBalance: null,
 			  },
