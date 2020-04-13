@@ -18,6 +18,7 @@ export interface DelegateWalletInfo {
 	maxIssuableSynths: number | null;
 	isFeesClaimable: boolean;
 	sUSDBalance: number | null;
+	hasFeesToClaim: boolean;
 }
 
 export type DelegateWalletsInfo = Record<WalletAddress, DelegateWalletInfo>;
@@ -58,6 +59,8 @@ function* fetchDelegateWalletInfo(walletAddr: WalletAddress) {
 	const issuanceRatio: BigNumberish = yield SynthetixState.issuanceRatio();
 	const maxIssueSynths: BigNumberish = yield Synthetix.maxIssuableSynths(walletAddr);
 	const isFeesClaimable: boolean = yield FeePool.isFeesClaimable(walletAddr);
+	const feesAvailable: Array<BigNumberish> = yield FeePool.feesAvailable(walletAddr);
+	const [sUSDExchangeFees, SNXRewards] = feesAvailable.map(formatEther);
 	const sUSDBalance: number = yield sUSD.balanceOf(walletAddr);
 
 	const data = {
@@ -80,6 +83,7 @@ function* fetchDelegateWalletInfo(walletAddr: WalletAddress) {
 					: 0,
 			maxIssuableSynths: Number(formatEther(maxIssueSynths)),
 			isFeesClaimable,
+			hasFeesToClaim: Boolean(Number(sUSDExchangeFees) !== 0 || Number(SNXRewards) !== 0),
 			sUSDBalance: Number(sUSDBalance),
 		},
 	};
