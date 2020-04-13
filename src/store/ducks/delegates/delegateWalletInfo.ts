@@ -1,4 +1,4 @@
-import { takeLatest, put, all } from 'redux-saga/effects';
+import { takeLatest, put, all, call } from 'redux-saga/effects';
 
 import { RootState } from 'store/types';
 import { BigNumberish, formatEther } from 'ethers/utils';
@@ -18,6 +18,7 @@ export interface DelegateWalletInfo {
 	maxIssuableSynths: number | null;
 	isFeesClaimable: boolean;
 	sUSDBalance: number | null;
+	hasFeesToClaim: boolean;
 }
 
 export type DelegateWalletsInfo = Record<WalletAddress, DelegateWalletInfo>;
@@ -49,37 +50,53 @@ export const fetchDelegateWalletInfoRequest: ActionCreatorWithPayload<{
 	walletAddresses: WalletAddresses;
 }> = fetchRequest;
 
+interface DelegateWalletData {
+	collateralisationRatio: BigNumberish;
+	issuanceRatio: BigNumberish;
+	maxIssueSynths: BigNumberish;
+	isFeesClaimable: boolean;
+	feesAvailable: [BigNumberish, BigNumberish];
+	sUSDBalance: number;
+}
+
 function* fetchDelegateWalletInfo(walletAddr: WalletAddress) {
 	const {
 		snxJS: { Synthetix, SynthetixState, FeePool, sUSD },
 	} = snxJSConnector;
 
-	const collateralisationRatio: BigNumberish = yield Synthetix.collateralisationRatio(walletAddr);
-	const issuanceRatio: BigNumberish = yield SynthetixState.issuanceRatio();
-	const maxIssueSynths: BigNumberish = yield Synthetix.maxIssuableSynths(walletAddr);
-	const isFeesClaimable: boolean = yield FeePool.isFeesClaimable(walletAddr);
-	const sUSDBalance: number = yield sUSD.balanceOf(walletAddr);
+	const delegateData: DelegateWalletData = yield all({
+		collateralisationRatio: call(Synthetix.collateralisationRatio, walletAddr),
+		issuanceRatio: call(SynthetixState.issuanceRatio),
+		maxIssueSynths: call(Synthetix.maxIssuableSynths, walletAddr),
+		isFeesClaimable: call(FeePool.isFeesClaimable, walletAddr),
+		feesAvailable: call(FeePool.feesAvailable, walletAddr),
+		sUSDBalance: call(sUSD.balanceOf, walletAddr),
+	});
+
+	const {
+		collateralisationRatio,
+		issuanceRatio,
+		maxIssueSynths,
+		isFeesClaimable,
+		feesAvailable,
+		sUSDBalance,
+	} = delegateData;
+
+	const [sUSDExchangeFees, SNXRewards] = feesAvailable.map(formatEther);
 
 	const data = {
 		[walletAddr]: {
 			collatRatio:
 				collateralisationRatio > 0
-					? Math.round(
-							toBigNumber(100)
-								.dividedBy(formatEther(collateralisationRatio))
-								.toNumber()
-					  )
+					? Math.round(toBigNumber(100).dividedBy(formatEther(collateralisationRatio)).toNumber())
 					: 0,
 			targetRatio:
 				issuanceRatio > 0
-					? Math.round(
-							toBigNumber(100)
-								.dividedBy(formatEther(issuanceRatio))
-								.toNumber()
-					  )
+					? Math.round(toBigNumber(100).dividedBy(formatEther(issuanceRatio)).toNumber())
 					: 0,
 			maxIssuableSynths: Number(formatEther(maxIssueSynths)),
 			isFeesClaimable,
+			hasFeesToClaim: Boolean(Number(sUSDExchangeFees) !== 0 || Number(SNXRewards) !== 0),
 			sUSDBalance: Number(sUSDBalance),
 		},
 	};
@@ -91,7 +108,7 @@ function* fetchDelegateWalletsInfo(action: PayloadAction<{ walletAddresses: Wall
 	try {
 		const { walletAddresses } = action.payload;
 
-		yield all(walletAddresses.map(walletAddr => fetchDelegateWalletInfo(walletAddr)));
+		yield all(walletAddresses.map((walletAddr) => fetchDelegateWalletInfo(walletAddr)));
 	} catch (e) {
 		yield put(fetchDelegateWalletInfoFailure({ error: e.message }));
 	}
