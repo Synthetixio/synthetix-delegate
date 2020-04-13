@@ -50,18 +50,19 @@ export const fetchDelegateWalletInfoRequest: ActionCreatorWithPayload<{
 	walletAddresses: WalletAddresses;
 }> = fetchRequest;
 
+interface DelegateWalletData {
+	collateralisationRatio: BigNumberish;
+	issuanceRatio: BigNumberish;
+	maxIssueSynths: BigNumberish;
+	isFeesClaimable: boolean;
+	feesAvailable: [BigNumberish, BigNumberish];
+	sUSDBalance: number;
+}
+
 function* fetchDelegateWalletInfo(walletAddr: WalletAddress) {
 	const {
 		snxJS: { Synthetix, SynthetixState, FeePool, sUSD },
 	} = snxJSConnector;
-	type DelegateWalletData = {
-		collateralisationRatio: BigNumberish;
-		issuanceRatio: BigNumberish;
-		maxIssueSynths: BigNumberish;
-		isFeesClaimable: boolean;
-		feesAvailable: [BigNumberish, BigNumberish];
-		sUSDBalance: number;
-	};
 
 	const delegateData: DelegateWalletData = yield all({
 		collateralisationRatio: call(Synthetix.collateralisationRatio, walletAddr),
@@ -87,19 +88,11 @@ function* fetchDelegateWalletInfo(walletAddr: WalletAddress) {
 		[walletAddr]: {
 			collatRatio:
 				collateralisationRatio > 0
-					? Math.round(
-							toBigNumber(100)
-								.dividedBy(formatEther(collateralisationRatio))
-								.toNumber()
-					  )
+					? Math.round(toBigNumber(100).dividedBy(formatEther(collateralisationRatio)).toNumber())
 					: 0,
 			targetRatio:
 				issuanceRatio > 0
-					? Math.round(
-							toBigNumber(100)
-								.dividedBy(formatEther(issuanceRatio))
-								.toNumber()
-					  )
+					? Math.round(toBigNumber(100).dividedBy(formatEther(issuanceRatio)).toNumber())
 					: 0,
 			maxIssuableSynths: Number(formatEther(maxIssueSynths)),
 			isFeesClaimable,
@@ -115,7 +108,7 @@ function* fetchDelegateWalletsInfo(action: PayloadAction<{ walletAddresses: Wall
 	try {
 		const { walletAddresses } = action.payload;
 
-		yield all(walletAddresses.map(walletAddr => fetchDelegateWalletInfo(walletAddr)));
+		yield all(walletAddresses.map((walletAddr) => fetchDelegateWalletInfo(walletAddr)));
 	} catch (e) {
 		yield put(fetchDelegateWalletInfoFailure({ error: e.message }));
 	}
