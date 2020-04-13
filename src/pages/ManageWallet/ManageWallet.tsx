@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState, FC } from 'react';
+import React, { memo, useEffect, FC } from 'react';
 import { connect } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
@@ -23,6 +23,8 @@ import {
 	Transaction,
 	TransactionError,
 	addTransaction,
+	addError,
+	removeError,
 	getTransactions,
 	getErrors,
 } from 'store/ducks/transaction/actionTransactions';
@@ -52,6 +54,8 @@ interface StateProps {
 interface DispatchProps {
 	fetchDelegateWalletInfoRequest: typeof fetchDelegateWalletInfoRequest;
 	addTransaction: typeof addTransaction;
+	addError: typeof addError;
+	removeError: typeof removeError;
 }
 
 interface Props {
@@ -70,9 +74,11 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 		addTransaction,
 		transactions,
 		networkName,
+		addError,
+		errors,
+		removeError,
 	}) => {
 		const { t } = useTranslation();
-		const [txErrorMessage, setTxErrorMessage] = useState<string | null>(null);
 		const {
 			collatRatio,
 			targetRatio,
@@ -102,8 +108,6 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 
 		const handleBurnToTarget = async () => {
 			try {
-				setTxErrorMessage(null);
-
 				const gasEstimate = await Synthetix.contract.estimate.burnSynthsToTargetOnBehalf(
 					walletAddr
 				);
@@ -114,14 +118,12 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 				});
 				addTransaction({ hash, walletAddress: walletAddr });
 			} catch (e) {
-				setTxErrorMessage(t('common.errors.unknown-error-try-again'));
+				addError({ id: 'burn', errorMessageKey: 'common.errors.unknown-error-try-again' });
 			}
 		};
 
 		const handleClaimFees = async () => {
 			try {
-				setTxErrorMessage(null);
-
 				const gasEstimate = await FeePool.contract.estimate.claimOnBehalf(walletAddr);
 
 				const { hash } = await FeePool.claimOnBehalf(walletAddr, {
@@ -130,14 +132,12 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 				});
 				addTransaction({ hash, walletAddress: walletAddr });
 			} catch (e) {
-				setTxErrorMessage(t('common.errors.unknown-error-try-again'));
+				addError({ id: 'claim', errorMessageKey: 'common.errors.unknown-error-try-again' });
 			}
 		};
 
 		const handleMintMax = async () => {
 			try {
-				setTxErrorMessage(null);
-
 				const gasEstimate = await Synthetix.contract.estimate.issueMaxSynthsOnBehalf(walletAddr);
 
 				const { hash } = await Synthetix.issueMaxSynthsOnBehalf(walletAddr, {
@@ -146,7 +146,7 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 				});
 				addTransaction({ hash, walletAddress: walletAddr });
 			} catch (e) {
-				setTxErrorMessage(t('common.errors.unknown-error-try-again'));
+				addError({ id: 'mint', errorMessageKey: 'common.errors.unknown-error-try-again' });
 			}
 		};
 
@@ -213,14 +213,14 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 						{t('manage-wallet.buttons.mint-max')}
 					</Button>
 				</Buttons>
-				{txErrorMessage && (
+				{errors.length > 0 && (
 					<TxErrorMessage
-						onDismiss={() => setTxErrorMessage(null)}
+						onDismiss={() => removeError({ id: errors[0].id })}
 						type="error"
 						size="sm"
 						floating={true}
 					>
-						{txErrorMessage}
+						{t(errors[0].errorMessageKey)}
 					</TxErrorMessage>
 				)}
 			</>
@@ -333,6 +333,8 @@ const mapStateToProps = (state: RootState, { match }: Props): StateProps => {
 const mapDispatchToProps: DispatchProps = {
 	fetchDelegateWalletInfoRequest,
 	addTransaction,
+	addError,
+	removeError,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ManageWallet);
