@@ -171,9 +171,9 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 								</TransactionHeadingWrapper>
 							</CollatBoxLabel>
 
-							<Link isExternal to={transactionHashToLink(transaction.hash, networkName)}>
+							<TransactionLink isExternal to={transactionHashToLink(transaction.hash, networkName)}>
 								{transactionHashToLink(transaction.hash, networkName)}
-							</Link>
+							</TransactionLink>
 						</CollatBox>
 					);
 				})}
@@ -250,6 +250,11 @@ const TransactionHeadingWrapper = styled.div`
 `;
 const TransactionSpinner = styled(Spinner)`
 	margin-left: 10px;
+`;
+const TransactionLink = styled(Link)`
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 `;
 
 const CollatBox = styled.div`
