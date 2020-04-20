@@ -1,5 +1,5 @@
 import { takeEvery, call, put } from 'redux-saga/effects';
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createSelector } from '@reduxjs/toolkit';
 import { RootState } from 'store/types';
 import snxJSConnector from 'utils/snxJSConnector';
 import { fetchDelegateWalletInfoRequest } from '../delegates/delegateWalletInfo';
@@ -24,7 +24,7 @@ const initialState: ActionTransactionState = {
 
 const sliceName = 'actionTransactions';
 
-export const gasInfoSlice = createSlice({
+export const actionTransactionsSlice = createSlice({
 	name: sliceName,
 	initialState,
 	reducers: {
@@ -63,14 +63,22 @@ export const gasInfoSlice = createSlice({
 	},
 });
 
-export const { addTransaction, removeTransaction, addError, removeError } = gasInfoSlice.actions;
+export const {
+	addTransaction,
+	removeTransaction,
+	addError,
+	removeError,
+} = actionTransactionsSlice.actions;
 
-export const getActionTransactionState = (state: RootState) => state.transaction[sliceName];
-export const getTransactions = (state: RootState) =>
-	Object.values(getActionTransactionState(state).byHash);
+const getActionTransactionState = (state: RootState) => state.transaction[sliceName];
 
-export const getErrors = (state: RootState) =>
-	Object.values(getActionTransactionState(state).errorsById);
+export const getTransactions = createSelector(getActionTransactionState, transactionState =>
+	Object.values(transactionState.byHash)
+);
+
+export const getErrors = createSelector(getActionTransactionState, transactionState =>
+	Object.values(transactionState.errorsById)
+);
 
 function* addTransactionSaga(action: PayloadAction<{ hash: string; walletAddress: string }>) {
 	const { hash, walletAddress } = action.payload;
@@ -88,4 +96,4 @@ export function* watchAddTransaction() {
 	yield takeEvery(addTransaction.type, addTransactionSaga);
 }
 
-export default gasInfoSlice.reducer;
+export default actionTransactionsSlice.reducer;

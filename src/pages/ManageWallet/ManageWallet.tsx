@@ -161,22 +161,23 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 				<PageLogo size="sm" />
 				<PageHeadline size="sm">{t('manage-wallet.headline')}</PageHeadline>
 				<Wallet>{toShortWalletAddr(walletAddr)}</Wallet>
-				{transactions.map(transaction => {
-					return (
-						<CollatBox key={transaction.hash}>
-							<CollatBoxLabel>
-								<TransactionHeadingWrapper>
-									{t('manage-wallet.transaction')}
-									<TransactionSpinner />
-								</TransactionHeadingWrapper>
-							</CollatBoxLabel>
+				{transactions.map(transaction => (
+					<CollatBox key={transaction.hash}>
+						<CollatBoxLabel>
+							<TransactionHeadingWrapper>
+								{t('manage-wallet.transaction')}
+								<TransactionSpinner />
+							</TransactionHeadingWrapper>
+						</CollatBoxLabel>
 
-							<TransactionLink isExternal to={transactionHashToLink(transaction.hash, networkName)}>
-								{transactionHashToLink(transaction.hash, networkName)}
-							</TransactionLink>
-						</CollatBox>
-					);
-				})}
+						<TransactionLink
+							isExternal={true}
+							to={transactionHashToLink(transaction.hash, networkName)}
+						>
+							{transactionHashToLink(transaction.hash, networkName)}
+						</TransactionLink>
+					</CollatBox>
+				))}
 				<CollatBox>
 					<CollatBoxLabel>{t('manage-wallet.current-c-ratio')}</CollatBoxLabel>
 					<CollatBoxValue>{collatRatio != null ? `${collatRatio}%` : EMPTY_VALUE}</CollatBoxValue>
