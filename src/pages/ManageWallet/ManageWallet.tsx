@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState, FC } from 'react';
+import React, { memo, useEffect, FC } from 'react';
 import { connect } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
@@ -9,15 +9,26 @@ import { ReactComponent as BackButton } from 'assets/images/back-button.svg';
 import Link from 'components/Link';
 import Button from 'components/Button';
 import DismissableMessage from 'components/DismissableMessage';
+import Spinner from 'components/Spinner';
 
 import ROUTES from 'constants/routes';
 
 import snxJSConnector from 'utils/snxJSConnector';
 
 import { toShortWalletAddr } from 'utils/formatters/wallet';
-import { normalizeGasLimit, gweiGasPrice } from 'utils/transaction';
+import { normalizeGasLimit, gweiGasPrice, transactionHashToLink } from 'utils/transaction';
 import { RootState } from 'store/types';
 import { getGasPrice, GasPrice } from 'store/ducks/transaction/gasPrice';
+import {
+	Transaction,
+	TransactionError,
+	addTransaction,
+	addError,
+	removeError,
+	getTransactions,
+	getErrors,
+} from 'store/ducks/transaction/actionTransactions';
+import { getNetworkName } from 'store/ducks/wallet';
 import { WalletAddress } from 'constants/wallet';
 import { EMPTY_VALUE } from 'constants/placeholder';
 import {
@@ -27,6 +38,7 @@ import {
 } from 'store/ducks/delegates/delegateWalletInfo';
 import useInterval from 'hooks/useInterval';
 import { REQUEST_REFRESH_INTERVAL_MS } from 'constants/request';
+import { SupportedNetworkName } from 'constants/network';
 import { PageLogo, PageHeadline } from 'styles/common';
 
 interface StateProps {
@@ -34,10 +46,16 @@ interface StateProps {
 	walletInfo: DelegateWalletInfo;
 	isLoading: boolean;
 	walletAddr: WalletAddress;
+	transactions: Transaction[];
+	errors: TransactionError[];
+	networkName: SupportedNetworkName;
 }
 
 interface DispatchProps {
 	fetchDelegateWalletInfoRequest: typeof fetchDelegateWalletInfoRequest;
+	addTransaction: typeof addTransaction;
+	addError: typeof addError;
+	removeError: typeof removeError;
 }
 
 interface Props {
@@ -47,9 +65,20 @@ interface Props {
 type ManageWalletProps = StateProps & DispatchProps & Props;
 
 const ManageWallet: FC<ManageWalletProps> = memo(
-	({ match, gasPrice, walletInfo, walletAddr, isLoading, fetchDelegateWalletInfoRequest }) => {
+	({
+		gasPrice,
+		walletInfo,
+		walletAddr,
+		isLoading,
+		fetchDelegateWalletInfoRequest,
+		addTransaction,
+		transactions,
+		networkName,
+		addError,
+		errors,
+		removeError,
+	}) => {
 		const { t } = useTranslation();
-		const [txErrorMessage, setTxErrorMessage] = useState<string | null>(null);
 		const {
 			collatRatio,
 			targetRatio,
@@ -79,48 +108,45 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 
 		const handleBurnToTarget = async () => {
 			try {
-				setTxErrorMessage(null);
-
 				const gasEstimate = await Synthetix.contract.estimate.burnSynthsToTargetOnBehalf(
 					walletAddr
 				);
 
-				await Synthetix.burnSynthsToTargetOnBehalf(walletAddr, {
+				const { hash } = await Synthetix.burnSynthsToTargetOnBehalf(walletAddr, {
 					gasPrice: gweiGasPrice(gasPrice.fast),
 					gasLimit: normalizeGasLimit(gasEstimate),
 				});
+				addTransaction({ hash, walletAddress: walletAddr });
 			} catch (e) {
-				setTxErrorMessage(t('common.errors.unknown-error-try-again'));
+				addError({ id: 'burn', errorMessageKey: 'common.errors.unknown-error-try-again' });
 			}
 		};
 
 		const handleClaimFees = async () => {
 			try {
-				setTxErrorMessage(null);
-
 				const gasEstimate = await FeePool.contract.estimate.claimOnBehalf(walletAddr);
 
-				await FeePool.claimOnBehalf(walletAddr, {
+				const { hash } = await FeePool.claimOnBehalf(walletAddr, {
 					gasPrice: gweiGasPrice(gasPrice.fast),
 					gasLimit: normalizeGasLimit(gasEstimate),
 				});
+				addTransaction({ hash, walletAddress: walletAddr });
 			} catch (e) {
-				setTxErrorMessage(t('common.errors.unknown-error-try-again'));
+				addError({ id: 'claim', errorMessageKey: 'common.errors.unknown-error-try-again' });
 			}
 		};
 
 		const handleMintMax = async () => {
 			try {
-				setTxErrorMessage(null);
-
 				const gasEstimate = await Synthetix.contract.estimate.issueMaxSynthsOnBehalf(walletAddr);
 
-				await Synthetix.issueMaxSynthsOnBehalf(walletAddr, {
+				const { hash } = await Synthetix.issueMaxSynthsOnBehalf(walletAddr, {
 					gasPrice: gweiGasPrice(gasPrice.fast),
 					gasLimit: normalizeGasLimit(gasEstimate),
 				});
+				addTransaction({ hash, walletAddress: walletAddr });
 			} catch (e) {
-				setTxErrorMessage(t('common.errors.unknown-error-try-again'));
+				addError({ id: 'mint', errorMessageKey: 'common.errors.unknown-error-try-again' });
 			}
 		};
 
@@ -135,6 +161,23 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 				<PageLogo size="sm" />
 				<PageHeadline size="sm">{t('manage-wallet.headline')}</PageHeadline>
 				<Wallet>{toShortWalletAddr(walletAddr)}</Wallet>
+				{transactions.map(transaction => (
+					<CollatBox key={transaction.hash}>
+						<CollatBoxLabel>
+							<TransactionHeadingWrapper>
+								{t('manage-wallet.transaction')}
+								<TransactionSpinner />
+							</TransactionHeadingWrapper>
+						</CollatBoxLabel>
+
+						<TransactionLink
+							isExternal={true}
+							to={transactionHashToLink(transaction.hash, networkName)}
+						>
+							{transactionHashToLink(transaction.hash, networkName)}
+						</TransactionLink>
+					</CollatBox>
+				))}
 				<CollatBox>
 					<CollatBoxLabel>{t('manage-wallet.current-c-ratio')}</CollatBoxLabel>
 					<CollatBoxValue>{collatRatio != null ? `${collatRatio}%` : EMPTY_VALUE}</CollatBoxValue>
@@ -171,14 +214,14 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 						{t('manage-wallet.buttons.mint-max')}
 					</Button>
 				</Buttons>
-				{txErrorMessage && (
+				{errors.length > 0 && (
 					<TxErrorMessage
-						onDismiss={() => setTxErrorMessage(null)}
+						onDismiss={() => removeError({ id: errors[0].id })}
 						type="error"
 						size="sm"
 						floating={true}
 					>
-						{txErrorMessage}
+						{t(errors[0].errorMessageKey)}
 					</TxErrorMessage>
 				)}
 			</>
@@ -199,6 +242,20 @@ const TxErrorMessage = styled(DismissableMessage)`
 	padding: 10px;
 	font-size: 12px;
 	color: ${props => props.theme.colors.fontPrimary};
+`;
+
+const TransactionHeadingWrapper = styled.div`
+	display: flex;
+	justify-content: center;
+	align-items: center;
+`;
+const TransactionSpinner = styled(Spinner)`
+	margin-left: 10px;
+`;
+const TransactionLink = styled(Link)`
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 `;
 
 const CollatBox = styled.div`
@@ -261,6 +318,9 @@ const mapStateToProps = (state: RootState, { match }: Props): StateProps => {
 
 	return {
 		gasPrice: getGasPrice(state),
+		transactions: getTransactions(state),
+		errors: getErrors(state),
+		networkName: getNetworkName(state),
 		walletInfo: walletInfoState.data[walletAddr]
 			? walletInfoState.data[walletAddr]
 			: {
@@ -278,6 +338,9 @@ const mapStateToProps = (state: RootState, { match }: Props): StateProps => {
 
 const mapDispatchToProps: DispatchProps = {
 	fetchDelegateWalletInfoRequest,
+	addTransaction,
+	addError,
+	removeError,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ManageWallet);
