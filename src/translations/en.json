@@ -15,6 +15,13 @@
 		"current-c-ratio": "current c-ratio",
 		"target-c-ratio": "target c-ratio",
 		"transaction": "Transaction",
+		"transaction-abbreviation": "TX",
+		"burn": "BURN",
+		"claim": "CLAIM",
+		"mint": "MINT",
+		"pending": "PENDING",
+		"complete": "COMPLETE",
+		"view": "VIEW",
 		"buttons": {
 			"burn-to-target": "Burn to target",
 			"claim-fees": "Claim fees",
