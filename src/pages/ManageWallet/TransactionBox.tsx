@@ -40,7 +40,6 @@ const TransactionBox: React.FC<Props> = ({ transaction, networkName, onCloseClic
 		</TransactionContainer>
 	);
 };
-export default TransactionBox;
 
 const TransactionSpinner = styled(Spinner)`
 	margin-left: 10px;
@@ -70,3 +69,5 @@ const TransactionStatus = styled.div`
 const ViewTransactionLink = styled(Link)`
 	color: ${(props) => props.theme.colors.buttonDefault};
 `;
+
+export default TransactionBox;
