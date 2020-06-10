@@ -1,12 +1,15 @@
 import React from 'react';
-import { Transaction } from 'store/ducks/transaction/actionTransactions';
-import Spinner from 'components/Spinner';
-import { ReactComponent as CloseIcon } from 'assets/images/close.svg';
-import { transactionHashToLink } from 'utils/transaction';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
-import Link from 'components/Link';
+
+import { Transaction } from 'store/ducks/transaction/actionTransactions';
+import { transactionHashToLink } from 'utils/transaction';
 import { SupportedNetworkName } from 'constants/network';
+
+import Spinner from 'components/Spinner';
+import Link from 'components/Link';
+
+import { ReactComponent as CloseIcon } from 'assets/images/close.svg';
 
 type Props = {
 	transaction: Transaction;
