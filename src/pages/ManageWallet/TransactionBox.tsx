@@ -18,24 +18,34 @@ type Props = {
 };
 const TransactionBox: React.FC<Props> = ({ transaction, networkName, onCloseClick }) => {
 	const { t } = useTranslation();
-
+	const link = transactionHashToLink(transaction.hash, networkName);
 	return (
-		<TransactionContainer>
-			{transaction.state === 'complete' && (
-				<TransactionClose onClick={() => onCloseClick(transaction)} />
-			)}
+		<TransactionContainer
+			onClick={() => {
+				window.open(link, '_blank');
+			}}
+		>
 			<TransactionStatus>
-				<span>
+				{transaction.state === 'complete' && (
+					<TransactionCloseButton
+						onClick={(e) => {
+							e.stopPropagation();
+							onCloseClick(transaction);
+						}}
+					>
+						<TransactionCloseCircle>
+							<CloseIcon />
+						</TransactionCloseCircle>
+					</TransactionCloseButton>
+				)}
+				<TransactionStatusText>
 					{t(`manage-wallet.transaction-abbreviation`)} {t(`manage-wallet.${transaction.state}`)}:{' '}
 					{t(`manage-wallet.${transaction.type}`)}
-				</span>
+				</TransactionStatusText>
 				{transaction.state === 'pending' && <TransactionSpinner />}
 			</TransactionStatus>
-			<ViewTransactionLink
-				isExternal={true}
-				to={transactionHashToLink(transaction.hash, networkName)}
-			>
-				{t('manage-wallet.view')}
+			<ViewTransactionLink isExternal={true} to={link}>
+				<span>{t('manage-wallet.view')}</span>
 			</ViewTransactionLink>
 		</TransactionContainer>
 	);
@@ -53,23 +63,43 @@ const TransactionContainer = styled.div`
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 18px 15px;
-`;
-const TransactionClose = styled(CloseIcon)`
-	position: absolute;
-	top: 5px;
-	right: 5px;
 	cursor: pointer;
+`;
+const TransactionCloseButton = styled.button`
+	border: none;
+	background: none;
+	align-self: stretch;
+	cursor: pointer;
+	width: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+`;
+const TransactionCloseCircle = styled.span`
+	background: ${(props) => props.theme.colors.accentL2};
+	border-radius: 50%;
+	width: 20px;
+	height: 20px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
 `;
 const TransactionStatus = styled.div`
 	display: flex;
 	align-items: center;
 	text-transform: uppercase;
 `;
+const TransactionStatusText = styled.span`
+	padding-left: 8px;
+	margin-top: 18px;
+	margin-bottom: 18px;
+`;
 
 const ViewTransactionLink = styled(Link)`
 	color: ${(props) => props.theme.colors.buttonDefault};
 	text-transform: uppercase;
+	padding-right: 10px;
 `;
 
 export default TransactionBox;
