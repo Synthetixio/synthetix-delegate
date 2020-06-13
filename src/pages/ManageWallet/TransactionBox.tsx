@@ -64,10 +64,12 @@ const TransactionClose = styled(CloseIcon)`
 const TransactionStatus = styled.div`
 	display: flex;
 	align-items: center;
+	text-transform: uppercase;
 `;
 
 const ViewTransactionLink = styled(Link)`
 	color: ${(props) => props.theme.colors.buttonDefault};
+	text-transform: uppercase;
 `;
 
 export default TransactionBox;
