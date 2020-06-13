@@ -1,5 +1,5 @@
 import React, { memo, useEffect, FC } from 'react';
-import { connect } from 'react-redux';
+import { connect, ConnectedProps } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { match } from 'react-router-dom';
@@ -17,10 +17,9 @@ import snxJSConnector from 'utils/snxJSConnector';
 import { toShortWalletAddr } from 'utils/formatters/wallet';
 import { normalizeGasLimit, gweiGasPrice } from 'utils/transaction';
 import { RootState } from 'store/types';
-import { getGasPrice, GasPrice } from 'store/ducks/transaction/gasPrice';
+import { getGasPrice } from 'store/ducks/transaction/gasPrice';
 import {
 	Transaction,
-	TransactionError,
 	addTransaction,
 	addError,
 	removeError,
@@ -35,40 +34,20 @@ import { WalletAddress } from 'constants/wallet';
 import { EMPTY_VALUE } from 'constants/placeholder';
 import {
 	getDelegateWalletInfoState,
-	DelegateWalletInfo,
 	fetchDelegateWalletInfoRequest,
 } from 'store/ducks/delegates/delegateWalletInfo';
 import useInterval from 'hooks/useInterval';
 import { REQUEST_REFRESH_INTERVAL_MS } from 'constants/request';
-import { SupportedNetworkName } from 'constants/network';
 import { PageLogo, PageHeadline } from 'styles/common';
 import TransactionBox from './TransactionBox';
 
-interface StateProps {
-	gasPrice: GasPrice;
-	walletInfo: DelegateWalletInfo;
-	isLoading: boolean;
-	walletAddr: WalletAddress;
-	mintTransaction?: Transaction;
-	burnTransaction?: Transaction;
-	claimTransaction?: Transaction;
-	errors: TransactionError[];
-	networkName: SupportedNetworkName;
-}
-
-interface DispatchProps {
-	fetchDelegateWalletInfoRequest: typeof fetchDelegateWalletInfoRequest;
-	addTransaction: typeof addTransaction;
-	removeTransaction: typeof removeTransaction;
-	addError: typeof addError;
-	removeError: typeof removeError;
-}
+type PropsFromRedux = ConnectedProps<typeof connector>;
 
 interface Props {
 	match: match<{ walletAddr: WalletAddress }>;
 }
 
-type ManageWalletProps = StateProps & DispatchProps & Props;
+type ManageWalletProps = PropsFromRedux & Props;
 
 const ManageWallet: FC<ManageWalletProps> = memo(
 	({
@@ -96,7 +75,6 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 			maxIssuableSynths,
 			sUSDBalance,
 		} = walletInfo;
-
 		const {
 			snxJS: { FeePool, Synthetix },
 		} = snxJSConnector;
@@ -311,7 +289,7 @@ const Buttons = styled.div`
 	grid-gap: 24px;
 `;
 
-const mapStateToProps = (state: RootState, { match }: Props): StateProps => {
+const mapStateToProps = (state: RootState, { match }: Props) => {
 	const {
 		params: { walletAddr },
 	} = match;
@@ -340,12 +318,13 @@ const mapStateToProps = (state: RootState, { match }: Props): StateProps => {
 	};
 };
 
-const mapDispatchToProps: DispatchProps = {
+const mapDispatchToProps = {
 	fetchDelegateWalletInfoRequest,
 	addTransaction,
 	addError,
 	removeError,
 	removeTransaction,
 };
+const connector = connect(mapStateToProps, mapDispatchToProps);
 
-export default connect(mapStateToProps, mapDispatchToProps)(ManageWallet);
+export default connector(ManageWallet);
