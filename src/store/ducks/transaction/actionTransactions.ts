@@ -5,16 +5,16 @@ import snxJSConnector from 'utils/snxJSConnector';
 import { fetchDelegateWalletInfoRequest } from '../delegates/delegateWalletInfo';
 import orderBy from 'lodash/orderBy';
 
-export interface Transaction {
+export type Transaction = {
 	hash: string;
 	type: 'burn' | 'mint' | 'claim';
 	state: 'pending' | 'complete';
-}
-export interface TransactionError {
+};
+export type TransactionError = {
 	errorMessageKey: string;
 	// Id might be a hash, but if we failed before getting a hash another id string
 	id: string;
-}
+};
 
 type ActionTransactionState = {
 	byHash: Record<string, Transaction>;
