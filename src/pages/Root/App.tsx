@@ -102,6 +102,7 @@ export const App: FC<AppProps> = ({
 					<NoWalletDetected />
 				)}
 			</Router>
+			<p>v{process.env.REACT_APP_VERSION}</p>
 		</Container>
 	);
 };
