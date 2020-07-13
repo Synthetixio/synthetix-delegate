@@ -1,5 +1,5 @@
 import React, { memo, useEffect, FC } from 'react';
-import { connect } from 'react-redux';
+import { connect, ConnectedProps } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { match } from 'react-router-dom';
@@ -9,60 +9,45 @@ import { ReactComponent as BackButton } from 'assets/images/back-button.svg';
 import Link from 'components/Link';
 import Button from 'components/Button';
 import DismissableMessage from 'components/DismissableMessage';
-import Spinner from 'components/Spinner';
 
 import ROUTES from 'constants/routes';
 
 import snxJSConnector from 'utils/snxJSConnector';
 
 import { toShortWalletAddr } from 'utils/formatters/wallet';
-import { normalizeGasLimit, gweiGasPrice, transactionHashToLink } from 'utils/transaction';
+import { normalizeGasLimit, gweiGasPrice } from 'utils/transaction';
 import { RootState } from 'store/types';
-import { getGasPrice, GasPrice } from 'store/ducks/transaction/gasPrice';
+import { getGasPrice } from 'store/ducks/transaction/gasPrice';
 import {
 	Transaction,
-	TransactionError,
 	addTransaction,
 	addError,
 	removeError,
-	getTransactions,
 	getErrors,
+	getMintTransaction,
+	getBurnTransaction,
+	getClaimTransaction,
+	removeTransaction,
 } from 'store/ducks/transaction/actionTransactions';
 import { getNetworkName } from 'store/ducks/wallet';
 import { WalletAddress } from 'constants/wallet';
 import { EMPTY_VALUE } from 'constants/placeholder';
 import {
 	getDelegateWalletInfoState,
-	DelegateWalletInfo,
 	fetchDelegateWalletInfoRequest,
 } from 'store/ducks/delegates/delegateWalletInfo';
 import useInterval from 'hooks/useInterval';
 import { REQUEST_REFRESH_INTERVAL_MS } from 'constants/request';
-import { SupportedNetworkName } from 'constants/network';
 import { PageLogo, PageHeadline } from 'styles/common';
+import TransactionBox from './TransactionBox';
 
-interface StateProps {
-	gasPrice: GasPrice;
-	walletInfo: DelegateWalletInfo;
-	isLoading: boolean;
-	walletAddr: WalletAddress;
-	transactions: Transaction[];
-	errors: TransactionError[];
-	networkName: SupportedNetworkName;
-}
-
-interface DispatchProps {
-	fetchDelegateWalletInfoRequest: typeof fetchDelegateWalletInfoRequest;
-	addTransaction: typeof addTransaction;
-	addError: typeof addError;
-	removeError: typeof removeError;
-}
+type PropsFromRedux = ConnectedProps<typeof connector>;
 
 interface Props {
 	match: match<{ walletAddr: WalletAddress }>;
 }
 
-type ManageWalletProps = StateProps & DispatchProps & Props;
+type ManageWalletProps = PropsFromRedux & Props;
 
 const ManageWallet: FC<ManageWalletProps> = memo(
 	({
@@ -72,7 +57,10 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 		isLoading,
 		fetchDelegateWalletInfoRequest,
 		addTransaction,
-		transactions,
+		removeTransaction,
+		mintTransaction,
+		burnTransaction,
+		claimTransaction,
 		networkName,
 		addError,
 		errors,
@@ -87,7 +75,6 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 			maxIssuableSynths,
 			sUSDBalance,
 		} = walletInfo;
-
 		const {
 			snxJS: { FeePool, Synthetix },
 		} = snxJSConnector;
@@ -116,7 +103,7 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 					gasPrice: gweiGasPrice(gasPrice.fast),
 					gasLimit: normalizeGasLimit(gasEstimate),
 				});
-				addTransaction({ hash, walletAddress: walletAddr });
+				addTransaction({ hash, walletAddress: walletAddr, type: 'burn' });
 			} catch (e) {
 				addError({ id: 'burn', errorMessageKey: 'common.errors.unknown-error-try-again' });
 			}
@@ -130,7 +117,7 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 					gasPrice: gweiGasPrice(gasPrice.fast),
 					gasLimit: normalizeGasLimit(gasEstimate),
 				});
-				addTransaction({ hash, walletAddress: walletAddr });
+				addTransaction({ hash, walletAddress: walletAddr, type: 'claim' });
 			} catch (e) {
 				addError({ id: 'claim', errorMessageKey: 'common.errors.unknown-error-try-again' });
 			}
@@ -144,12 +131,14 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 					gasPrice: gweiGasPrice(gasPrice.fast),
 					gasLimit: normalizeGasLimit(gasEstimate),
 				});
-				addTransaction({ hash, walletAddress: walletAddr });
+				addTransaction({ hash, walletAddress: walletAddr, type: 'mint' });
 			} catch (e) {
 				addError({ id: 'mint', errorMessageKey: 'common.errors.unknown-error-try-again' });
 			}
 		};
-
+		const handleCloseClick = (transaction: Transaction) => {
+			removeTransaction({ hash: transaction.hash });
+		};
 		const isBurnToTargetButtonDisabled =
 			isLoading || (collatRatio != null && targetRatio != null && collatRatio > targetRatio);
 
@@ -161,23 +150,6 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 				<PageLogo size="sm" />
 				<PageHeadline size="sm">{t('manage-wallet.headline')}</PageHeadline>
 				<Wallet>{toShortWalletAddr(walletAddr)}</Wallet>
-				{transactions.map(transaction => (
-					<CollatBox key={transaction.hash}>
-						<CollatBoxLabel>
-							<TransactionHeadingWrapper>
-								{t('manage-wallet.transaction')}
-								<TransactionSpinner />
-							</TransactionHeadingWrapper>
-						</CollatBoxLabel>
-
-						<TransactionLink
-							isExternal={true}
-							to={transactionHashToLink(transaction.hash, networkName)}
-						>
-							{transactionHashToLink(transaction.hash, networkName)}
-						</TransactionLink>
-					</CollatBox>
-				))}
 				<CollatBox>
 					<CollatBoxLabel>{t('manage-wallet.current-c-ratio')}</CollatBoxLabel>
 					<CollatBoxValue>{collatRatio != null ? `${collatRatio}%` : EMPTY_VALUE}</CollatBoxValue>
@@ -197,6 +169,14 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 							{t('manage-wallet.buttons.burn-to-target')}
 						</Button>
 					)}
+					{burnTransaction && (
+						<TransactionBox
+							transaction={burnTransaction}
+							networkName={networkName}
+							onCloseClick={handleCloseClick}
+						/>
+					)}
+
 					<Button
 						size="lg"
 						palette="primary"
@@ -205,6 +185,13 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 					>
 						{t('manage-wallet.buttons.claim-fees')}
 					</Button>
+					{claimTransaction && (
+						<TransactionBox
+							transaction={claimTransaction}
+							networkName={networkName}
+							onCloseClick={handleCloseClick}
+						/>
+					)}
 					<Button
 						size="lg"
 						palette="primary"
@@ -213,6 +200,13 @@ const ManageWallet: FC<ManageWalletProps> = memo(
 					>
 						{t('manage-wallet.buttons.mint-max')}
 					</Button>
+					{mintTransaction && (
+						<TransactionBox
+							transaction={mintTransaction}
+							networkName={networkName}
+							onCloseClick={handleCloseClick}
+						/>
+					)}
 				</Buttons>
 				{errors.length > 0 && (
 					<TxErrorMessage
@@ -241,29 +235,15 @@ const TxErrorMessage = styled(DismissableMessage)`
 	text-align: left;
 	padding: 10px;
 	font-size: 12px;
-	color: ${props => props.theme.colors.fontPrimary};
-`;
-
-const TransactionHeadingWrapper = styled.div`
-	display: flex;
-	justify-content: center;
-	align-items: center;
-`;
-const TransactionSpinner = styled(Spinner)`
-	margin-left: 10px;
-`;
-const TransactionLink = styled(Link)`
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	color: ${(props) => props.theme.colors.fontPrimary};
 `;
 
 const CollatBox = styled.div`
 	display: flex;
 	justify-content: space-between;
 	flex-direction: column;
-	background-color: ${props => props.theme.colors.surfaceL1};
-	border: 1px solid ${props => props.theme.colors.accentL2};
+	background-color: ${(props) => props.theme.colors.surfaceL1};
+	border: 1px solid ${(props) => props.theme.colors.accentL2};
 	height: 88px;
 	box-sizing: border-box;
 	margin-bottom: 24px;
@@ -275,8 +255,8 @@ const CollatBoxLabel = styled.span`
 	font-size: 14px;
 	line-height: 17px;
 	letter-spacing: 0.2px;
-	font-family: ${props => props.theme.fonts.regular};
-	color: ${props => props.theme.colors.fontSecondary};
+	font-family: ${(props) => props.theme.fonts.regular};
+	color: ${(props) => props.theme.colors.fontSecondary};
 	text-transform: uppercase;
 `;
 
@@ -284,8 +264,8 @@ const CollatBoxValue = styled.span`
 	font-weight: 500;
 	font-size: 32px;
 	letter-spacing: 0.2px;
-	font-family: ${props => props.theme.fonts.regular};
-	color: ${props => props.theme.colors.fontPrimary};
+	font-family: ${(props) => props.theme.fonts.regular};
+	color: ${(props) => props.theme.colors.fontPrimary};
 `;
 
 const Wallet = styled.div`
@@ -293,9 +273,9 @@ const Wallet = styled.div`
 	font-size: 20px;
 	letter-spacing: 0.2px;
 	margin-bottom: 24px;
-	font-family: ${props => props.theme.fonts.regular};
-	color: ${props => props.theme.colors.fontPrimary};
-	background-color: ${props => props.theme.colors.accentL1};
+	font-family: ${(props) => props.theme.fonts.regular};
+	color: ${(props) => props.theme.colors.fontPrimary};
+	background-color: ${(props) => props.theme.colors.accentL1};
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -309,7 +289,7 @@ const Buttons = styled.div`
 	grid-gap: 24px;
 `;
 
-const mapStateToProps = (state: RootState, { match }: Props): StateProps => {
+const mapStateToProps = (state: RootState, { match }: Props) => {
 	const {
 		params: { walletAddr },
 	} = match;
@@ -318,7 +298,9 @@ const mapStateToProps = (state: RootState, { match }: Props): StateProps => {
 
 	return {
 		gasPrice: getGasPrice(state),
-		transactions: getTransactions(state),
+		mintTransaction: getMintTransaction(state),
+		burnTransaction: getBurnTransaction(state),
+		claimTransaction: getClaimTransaction(state),
 		errors: getErrors(state),
 		networkName: getNetworkName(state),
 		walletInfo: walletInfoState.data[walletAddr]
@@ -336,11 +318,13 @@ const mapStateToProps = (state: RootState, { match }: Props): StateProps => {
 	};
 };
 
-const mapDispatchToProps: DispatchProps = {
+const mapDispatchToProps = {
 	fetchDelegateWalletInfoRequest,
 	addTransaction,
 	addError,
 	removeError,
+	removeTransaction,
 };
+const connector = connect(mapStateToProps, mapDispatchToProps);
 
-export default connect(mapStateToProps, mapDispatchToProps)(ManageWallet);
+export default connector(ManageWallet);
