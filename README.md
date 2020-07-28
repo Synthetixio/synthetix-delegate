@@ -1,6 +1,6 @@
 # Synthetix.Delegate
 
-The code for the [Synthetix.Delegate](https://delegate.synthetix.io) dApp.
+The code for the [Synthetix.Delegatr](https://delegatr.synthetix.io) dApp.
 
 ## Available Scripts
 
