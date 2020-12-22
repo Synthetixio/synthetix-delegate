@@ -61,12 +61,12 @@ interface DelegateWalletData {
 
 function* fetchDelegateWalletInfo(walletAddr: WalletAddress) {
 	const {
-		snxJS: { Synthetix, SynthetixState, FeePool, sUSD },
+		snxJS: { Synthetix, SystemSettings, FeePool, sUSD },
 	} = snxJSConnector;
 
 	const delegateData: DelegateWalletData = yield all({
 		collateralisationRatio: call(Synthetix.collateralisationRatio, walletAddr),
-		issuanceRatio: call(SynthetixState.issuanceRatio),
+		issuanceRatio: call(SystemSettings.issuanceRatio),
 		maxIssueSynths: call(Synthetix.maxIssuableSynths, walletAddr),
 		isFeesClaimable: call(FeePool.isFeesClaimable, walletAddr),
 		feesAvailable: call(FeePool.feesAvailable, walletAddr),
