@@ -1,6 +1,6 @@
 {
 	"name": "synthetix-delegate",
-	"version": "2.40.0-alpha",
+	"version": "2.40.1-alpha",
 	"private": true,
 	"dependencies": {
 		"@reduxjs/toolkit": "1.3.2",
